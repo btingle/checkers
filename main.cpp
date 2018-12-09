@@ -467,6 +467,24 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 	}
 }
 
+bool WGLExtensionSupported(const char *extension_name)
+{
+	// this is pointer to function which returns pointer to string with list of all wgl extensions
+	PFNWGLGETEXTENSIONSSTRINGEXTPROC _wglGetExtensionsStringEXT = NULL;
+
+	// determine pointer to wglGetExtensionsStringEXT function
+	_wglGetExtensionsStringEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)wglGetProcAddress("wglGetExtensionsStringEXT");
+
+	if (strstr(_wglGetExtensionsStringEXT(), extension_name) == NULL)
+	{
+		// string was not found
+		return false;
+	}
+
+	// extension is supported
+	return true;
+}
+
 bool init()
 {
 	// openGL init stuff
@@ -513,8 +531,6 @@ bool init()
 		}
 		stbi_image_free(tex_data);
 	}
-
-	// initialize VAO
 
 	// model vertex data loading
 	
@@ -649,6 +665,22 @@ int main()
 		cin >> wait;
 		return -1;
 	}
+
+	PFNWGLSWAPINTERVALEXTPROC       wglSwapIntervalEXT = NULL;
+	PFNWGLGETSWAPINTERVALEXTPROC    wglGetSwapIntervalEXT = NULL;
+
+	if (WGLExtensionSupported("WGL_EXT_swap_control"))
+	{
+		// Extension is supported, init pointers.
+		wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+
+		// this is another function from WGL_EXT_swap_control extension
+		wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC)wglGetProcAddress("wglGetSwapIntervalEXT");
+
+		// enables VSYNC and limits FPS to refresh rate
+		wglSwapIntervalEXT(1);
+	}
+
 	// end super boilerplate stuff
 
 	if (!init())
@@ -679,7 +711,7 @@ int main()
 			view = glm::lookAt(view_pos, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 			shader_prog.setMat4(shader_view_loc, view);
 			shader_prog.setVec3(shader_viewpos_loc, view_pos);
-			angle += sqrt(abs(sin(angle))) * 0.008f + 0.0005f;
+			angle += sqrt(abs(sin(angle))) * 0.05f + 0.002f;
 			update_hover_mesh();
 			if (player_turn == PLAYER_2 && angle > M_PI)
 			{
